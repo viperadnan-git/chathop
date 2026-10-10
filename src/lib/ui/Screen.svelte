@@ -24,15 +24,20 @@ let {
 } = $props();
 </script>
 
-<div class="ui-screen" class:has-footer={!!footer}>
+<div
+    class="ui-screen"
+    class:has-footer={!!footer}
+    class:has-credit={credit && !footer}
+>
     {#if onback}
         <Header {onback} {backLabel} {title} {action} />
     {/if}
 
     <div class="body" class:under-header={!!onback || underHeader}>
         {@render children()}
-        {#if credit && !footer}<Credit />{/if}
     </div>
+
+    {#if credit && !footer}<Credit />{/if}
 
     {#if footer}
         <div class="footer">{@render footer()}</div>
@@ -69,8 +74,7 @@ let {
 .body > :global(*) {
     margin-inline: var(--ui-gutter);
 }
-.body > :global(.ui-hero),
-.body > :global(.ui-credit) {
+.body > :global(.ui-hero) {
     margin-inline: 0;
 }
 .body > :global(* + *) {
@@ -92,6 +96,11 @@ let {
    body reserves its full height instead of its own bottom inset. */
 .has-footer .body {
     padding-bottom: calc(var(--ui-safe-bottom) + var(--ui-button-bar) + 28px);
+}
+/* Whatever is last owns the bottom inset: with a credit under it, the body
+   stops at the gap the credit's own top padding gives it. */
+.has-credit .body {
+    padding-bottom: 0;
 }
 .footer :global(.ui-button) {
     min-height: var(--ui-button-bar);

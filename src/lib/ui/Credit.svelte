@@ -32,7 +32,7 @@ import { openTelegramLink } from "../telegram";
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 28px var(--ui-gutter) 8px;
+    padding: 28px var(--ui-gutter) calc(var(--ui-safe-bottom) + 20px);
 }
 a {
     display: inline-flex;
