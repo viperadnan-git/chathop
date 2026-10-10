@@ -59,13 +59,6 @@ export async function getAdmin() {
 
 export const setAdmin = (userId) => setSetting("admin", String(userId));
 
-export async function claimAdmin(userId) {
-    const admin = await getAdmin();
-    if (admin !== undefined) return admin;
-    await setAdmin(userId);
-    return userId;
-}
-
 export const isPrivate = async () => (await access()).private;
 
 export const setPrivate = (on) => setSetting("private", on ? "1" : "0");

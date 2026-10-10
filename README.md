@@ -37,18 +37,19 @@ Anyone can use it, and everyone's routes are their own. You must administer the
 bot has to be in it too — an administrator, in a channel — to see the messages
 at all.
 
-The first person to `/start` administers the bot and gets two more commands:
+Whoever claims the bot administers it, and gets two more commands:
 
 | | |
 | --- | --- |
 | `/private on\|off` | Keep the bot to yourself; everyone else's routes go quiet |
 | `/transfer (user id)` | Hand the bot over, after confirming on a button |
 
-Whoever deploys the bot takes charge of it with **`/claim`**, and can always
-take it back with **`/claim (bot token)`** — holding the token from
-[@BotFather](https://t.me/BotFather) *is* the proof of ownership, so there is
-no secret to configure and no way to lock yourself out by mistyping an id in
-`/transfer`. The message carrying the token is deleted on sight.
+Nobody runs a fresh bot until someone says so: **`/claim`** takes charge of
+it while it is unclaimed, and **`/claim (bot token)`** takes it back at any
+time — holding the token from [@BotFather](https://t.me/BotFather) *is* the
+proof of ownership, so there is no secret to configure and no way to lock
+yourself out by mistyping an id in `/transfer`. The message carrying the
+token is deleted on sight.
 
 Anywhere a chat is expected you can pass a chat id, an `@username` or a t.me
 link — including a message link, which yields the chat it belongs to. Invite
@@ -71,19 +72,6 @@ command list, its description, and the menu button that opens the Mini App.
 There is nothing to set by hand in @BotFather, and nothing to remember after
 changing a command — it is applied on the next deploy, and skipped when
 nothing changed.
-
-### From CI
-
-`.github/workflows/deploy.yml` does the same on every push to `main`. The one
-thing it needs is a repository secret named `TGCLOUD_TOKEN` — the CLI access
-token from @BotFather → your bot → Serverless, which the CLI reads instead of
-`.tgcloud/credentials` and never writes to disk.
-
-A fresh checkout has no `.tgcloud/`, so the workflow runs `tgcloud fetch`
-first: that takes the cloud's revision without touching the working tree, and
-the push that follows stays conditional — it aborts rather than overwriting a
-deploy someone made in the meantime. Schema changes are applied with
-`migrate --safe`, so a change the CLI warns about waits for a human.
 
 ## Known limits
 

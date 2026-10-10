@@ -12,7 +12,7 @@ import { chatTitle, escapeHtml } from "./text.js";
 const send = (chat_id, text, extra = {}) =>
     api.sendMessage({ chat_id, text, parse_mode: "HTML", ...extra });
 
-function welcome() {
+function welcome(unclaimed) {
     return [
         "<b>chathop</b> forwards messages from one chat to many.",
         "",
@@ -23,6 +23,12 @@ function welcome() {
         "Tap the button below, or send /set to choose the two chats.",
         "",
         "<i>/help lists everything I can do.</i>",
+        ...(unclaimed
+            ? [
+                  "",
+                  "<i>Nobody runs this bot yet. /claim takes charge of it.</i>",
+              ]
+            : []),
     ].join("\n");
 }
 
@@ -339,7 +345,11 @@ async function cmdClaim({ userId, chatId, args, msg }) {
 }
 
 async function cmdStart({ chatId }) {
-    await send(chatId, welcome(), { reply_markup: await settingsButton() });
+    // The same memoised read the dispatcher already made.
+    const unclaimed = (await store.getAdmin()) === undefined;
+    await send(chatId, welcome(unclaimed), {
+        reply_markup: await settingsButton(),
+    });
 }
 
 async function cmdHelp({ chatId, isAdmin }) {
@@ -445,10 +455,7 @@ export async function handleCommand(msg) {
     if (!userId) return false;
     const chatId = msg.chat.id;
 
-    const admin =
-        name === "start"
-            ? await store.claimAdmin(userId)
-            : await store.getAdmin();
+    const admin = await store.getAdmin();
     const isAdmin = userId === admin;
 
     if (!spec.always && !isAdmin && (await store.isPrivate())) {
