@@ -4,8 +4,8 @@
 
 <h1>chathop</h1>
 
-<p><b>One chat in, many chats out.</b><br>
-Telegram forwarding, with its own filters and caption rules per destination.</p>
+<p><b>Forwards messages from one chat to others.</b><br>
+Each destination gets its own filters and caption rules.</p>
 
 <p>
   <a href="https://t.me/chathopbot"><img src="https://img.shields.io/badge/try_it-%40chathopbot-0496fc?style=flat-square&labelColor=30404d&logo=telegram&logoColor=white" alt="@chathopbot on Telegram"></a>

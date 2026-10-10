@@ -14,7 +14,7 @@ import Screen from "../ui/Screen.svelte";
 <Screen credit>
     <Hero title={project.name}>
         {#snippet glyph()}<Icon name="mark" size={52} />{/snippet}
-        {#snippet lede()}{project.tagline}{/snippet}
+        {#snippet lede()}{project.short}{/snippet}
     </Hero>
 
     <Alert tone="info">

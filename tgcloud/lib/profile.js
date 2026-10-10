@@ -1,4 +1,5 @@
 import { api } from "sdk";
+import { ABOUT, SHORT } from "./about.js";
 import { miniAppUrl } from "./app.js";
 import { menuCommands } from "./commands.js";
 import * as store from "./store.js";
@@ -6,17 +7,6 @@ import * as store from "./store.js";
 // Read off the command table rather than typed again here: the ones worth
 // suggesting are the ones that carry a description.
 const COMMANDS = menuCommands();
-
-const SHORT =
-    "Forwards messages from one chat to many, each with its own filters and caption rules.";
-
-const ABOUT = [
-    "I copy new messages from one chat into as many others as you like.",
-    "",
-    "Each destination has its own rules: allow or block by word, pattern, media or sender, and rewrite the text on the way.",
-    "",
-    "Tap Start, then open the app to set one up.",
-].join("\n");
 
 /**
  * Remembers what it applied: these methods are rate limited and a deploy may

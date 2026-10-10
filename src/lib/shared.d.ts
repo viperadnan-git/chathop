@@ -24,6 +24,13 @@ declare module "$config" {
     export function replacementIssue(rule: Replacement): string | null;
 }
 
+declare module "$about" {
+    export const NAME: string;
+    export const TAGLINE: string;
+    export const SHORT: string;
+    export const ABOUT: string;
+}
+
 declare module "$status" {
     export const ROUTE_STATUS: Record<string, string>;
     export function statusLabel(status: string): string;

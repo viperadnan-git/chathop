@@ -2,6 +2,7 @@
 import type { Settings } from "../api";
 import RouteLink from "../components/RouteLink.svelte";
 import RouteSkeleton from "../components/RouteSkeleton.svelte";
+import { project } from "../project";
 import { type Route, withDefaults } from "../types";
 import Alert from "../ui/Alert.svelte";
 import Card from "../ui/Card.svelte";
@@ -77,7 +78,7 @@ const plural = (n: number, one: string, many = `${one}s`) =>
             {:else if routes.length}
                 {plural(grouped.length, "source")} · {plural(routes.length, "destination")}
             {:else}
-                Copy new messages from one chat into another
+                {project.tagline}
             {/if}
         {/snippet}
     </Hero>

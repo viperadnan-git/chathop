@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "type": "module",
-    "description": "Telegram bot that forwards messages from one chat to many, each destination with its own filters and caption rules. Runs on Telegram Serverless — no host, no database.",
+    "description": "Forwards messages from one chat to others. Each destination gets its own filters and caption rules. Runs on Telegram Serverless — no host, no database.",
     "keywords": [
         "telegram",
         "telegram-bot",

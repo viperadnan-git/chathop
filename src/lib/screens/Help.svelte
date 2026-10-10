@@ -1,5 +1,6 @@
 <script lang="ts">
 import SyntaxList from "../components/SyntaxList.svelte";
+import { project } from "../project";
 import Card from "../ui/Card.svelte";
 import Heading from "../ui/Heading.svelte";
 import Hero from "../ui/Hero.svelte";
@@ -62,10 +63,7 @@ const faq = [
 <Screen {onback} {backLabel} title="Help" credit>
     <Hero title="Help">
         {#snippet glyph()}<Icon name="help" size={46} stroke={1.6} />{/snippet}
-        {#snippet lede()}
-            Forwarding messages between your chats, one source to many
-            destinations.
-        {/snippet}
+        {#snippet lede()}{project.tagline}{/snippet}
     </Hero>
 
     <Heading title="Naming a chat" />

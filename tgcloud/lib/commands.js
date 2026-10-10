@@ -1,4 +1,5 @@
 import { api } from "sdk";
+import { NAME, SHORT } from "./about.js";
 import { settingsButton } from "./app.js";
 import { resolveChat, resolveChatId } from "./chatref.js";
 import { createForward } from "./forwards.js";
@@ -14,10 +15,8 @@ const send = (chat_id, text, extra = {}) =>
 
 function welcome(unclaimed) {
     return [
-        "<b>chathop</b> forwards messages from one chat to many.",
-        "",
-        "Pick two chats, and every new message in the first is copied into the second. " +
-            "Each destination gets its own filters and its own edits to the text.",
+        `<b>${NAME}</b>`,
+        SHORT,
         "",
         "<b>Start here</b>",
         "Tap the button below, or send /set to choose the two chats.",
@@ -34,12 +33,7 @@ function welcome(unclaimed) {
 
 function help(isAdmin) {
     const sections = [
-        [
-            "",
-            [
-                "<b>chathop</b> forwards messages from one chat to many, each with its own filters and caption rules.",
-            ],
-        ],
+        ["", [`<b>${NAME}</b>`, SHORT]],
         ["What you can do", listed(false)],
         [
             "Naming a chat",

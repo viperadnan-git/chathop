@@ -16,6 +16,9 @@ export default defineConfig({
             $status: fileURLToPath(
                 new URL("./tgcloud/lib/health.js", import.meta.url),
             ),
+            $about: fileURLToPath(
+                new URL("./tgcloud/lib/about.js", import.meta.url),
+            ),
         },
     },
     build: { outDir: "dist", emptyOutDir: true },
