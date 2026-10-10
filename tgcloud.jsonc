@@ -1,0 +1,11 @@
+{
+    "static": {
+        "source": "dist",
+        // The app routes with history paths (/add, /route/<id>), so a reload or a
+        // deep link has to be served index.html rather than 404.
+        "spa": true,
+        // Vite content-hashes everything under /assets.
+        "immutable": ["/assets/*"]
+    },
+    "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json"
+}

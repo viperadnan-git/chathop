@@ -1,2 +1,21 @@
+# Machine state and build output.
 .tgcloud/
 node_modules/
+dist/
+
+# Scratch that is fetched, not authored — see AGENTS.md.
+.local/
+
+# The bot's token lives in .tgcloud/, but a stray .env is the other way one
+# reaches a commit.
+.env
+.env.*
+!.env.example
+
+# Editors and the desktop.
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+*.log

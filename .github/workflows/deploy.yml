@@ -1,0 +1,52 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time: the platform rejects a push whose revision is stale,
+# and a queued run is more useful than a failed one.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      # @BotFather → your bot → Serverless. Format app<id>:<secret>; the CLI
+      # reads it instead of .tgcloud/credentials and never writes it to disk.
+      TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      - run: bun run check
+      # push uploads dist/ as it is on disk; it never runs the build.
+      - run: bun run build
+
+      # .tgcloud/ is gitignored, so a fresh checkout has never synced and push
+      # would refuse rather than overwrite the bot. fetch takes the cloud's
+      # state and revision without touching the working tree, which keeps the
+      # push conditional: it aborts if someone deployed in the meantime.
+      - run: bunx tgcloud fetch
+
+      # The repo is the source of truth: modules it no longer has are deleted
+      # in the cloud. Non-interactive, so this is reported rather than asked.
+      - run: bunx tgcloud push
+
+      # Deploying never touches the database. --safe applies only the changes
+      # the CLI considers safe; anything that warns waits for a human running
+      # `bunx tgcloud migrate`, because an unattended column drop is not a
+      # thing to discover from a log.
+      - run: bunx tgcloud migrate --safe
+
+      # Commands, descriptions and the menu button. Skips its Bot API writes
+      # when nothing changed.
+      - run: bunx tgcloud run endpoints/setup '{}' --ctx '{}'

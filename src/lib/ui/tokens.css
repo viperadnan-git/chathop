@@ -1,0 +1,113 @@
+/*
+ * The design system's own scale, read off Telegram's BotFather Mini App.
+ * Colour still comes from the theme, so a user's palette is respected; what is
+ * fixed here is size, weight and rhythm — which is what makes a Mini App look
+ * native or not.
+ */
+
+:root {
+    /* Measured off the reference screenshots (2x, 400px viewport) by cap
+       height, not guessed. Section headers are headings rather than captions,
+       but the whole scale is smaller than an iOS settings list. */
+    --ui-title: 22px; /* hero */
+    --ui-heading: 18px; /* section header */
+    --ui-body: 15px; /* row label, field text, button */
+    --ui-note: 13px; /* note under a card, lede */
+    /* A row's second line: subordinate to a standalone note, which is the
+       screen talking, where this only explains the label above it. */
+    --ui-caption: 12px;
+
+    --ui-weight-title: 700;
+    --ui-weight-heading: 700;
+    --ui-weight-button: 600;
+
+    /*
+     * Layering. Content that lifts above a row's hit area sits at `raised`;
+     * a sticky bar must beat it, which is why they cannot share a value.
+     */
+    --ui-z-raised: 1;
+    --ui-z-bar: 10;
+    --ui-z-sheet: 30;
+    --ui-z-dialog: 40;
+
+    /* Shape. */
+    --ui-r-card: 12px;
+    --ui-r-button: 10px;
+    --ui-r-pill: 999px;
+
+    /*
+     * Motion, read off Telegram's own web client, where
+     * `cubic-bezier(.4, 0, .2, 1)` at `.2s` is what nearly everything uses.
+     * Timed by role, not by component.
+     */
+    --ui-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --ui-ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+    --ui-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+    --ui-quick: 0.12s;
+    --ui-swift: 0.2s;
+    --ui-slow: 0.3s;
+
+    /* Rhythm. Row pitch and button height are measured; the rest follows. */
+    --ui-gutter: 15px;
+    --ui-row: 46px;
+    /* Measured: a button inside a card is 44, the bottom bar's is 50. */
+    --ui-button: 44px;
+    --ui-button-bar: 50px;
+    --ui-field: 48px;
+    --ui-leading: 34px; /* avatar or icon at the start of a row */
+    /* A chat's own avatar, sized to the two lines beside it: a 15px name and
+       a 13px detail come to about 40px, so the two squares match. */
+    --ui-avatar: 40px;
+    --ui-media: 56px; /* hero photo */
+    --ui-gap: 10px;
+    --ui-section-gap: 24px;
+
+    /*
+     * Safe areas. Here, not in app.css: one undefined variable silently
+     * invalidates a whole `padding` shorthand.
+     *
+     * Two inset sets stack — the device and Telegram's own chrome — with
+     * env() as the plain-browser fallback.
+     */
+    --ui-safe-top: calc(
+        var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+        var(--tg-content-safe-area-inset-top, 0px)
+    );
+    --ui-safe-bottom: calc(
+        var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+        var(--tg-content-safe-area-inset-bottom, 0px)
+    );
+    --ui-safe-left: calc(
+        var(--tg-safe-area-inset-left, env(safe-area-inset-left, 0px)) +
+        var(--tg-content-safe-area-inset-left, 0px)
+    );
+    --ui-safe-right: calc(
+        var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px)) +
+        var(--tg-content-safe-area-inset-right, 0px)
+    );
+
+    /* Surfaces, from the theme. --ui-field is the inset inside a card. */
+    --ui-page: var(--tg-theme-secondary-bg-color, #0e1621);
+    --ui-card: var(--tg-theme-section-bg-color, #1c2733);
+    --ui-inset: color-mix(in srgb, var(--ui-card) 86%, #fff 6%);
+
+    --ui-text: var(--tg-theme-text-color, #fff);
+    --ui-muted: var(--tg-theme-hint-color, #8d9499);
+    --ui-accent: var(
+        --tg-theme-accent-text-color,
+        var(--tg-theme-link-color, #50a8eb)
+    );
+    --ui-on-accent: var(--tg-theme-button-text-color, #fff);
+    --ui-button-bg: var(--tg-theme-button-color, #50a8eb);
+    --ui-danger: var(--tg-theme-destructive-text-color, #e07a6a);
+    /* Sampled from the reference: a row separator is not a lighter line on
+       the card, it is the page colour showing through it. */
+    --ui-separator: var(--tg-theme-section-separator-color, var(--ui-page));
+    /* The rail joining a source to its destinations is drawn, not a gap, so
+       it has to lift off the card rather than sink into it. */
+    --ui-rail: color-mix(in srgb, var(--ui-text) 13%, transparent);
+    /* Press and hover are their own thing, so changing the separator cannot
+       quietly change what a tap looks like. */
+    --ui-press: color-mix(in srgb, var(--ui-text) 9%, transparent);
+    --ui-hover: color-mix(in srgb, var(--ui-text) 5%, transparent);
+}

@@ -1,0 +1,56 @@
+/* The design system's scale and surfaces. Imported here rather than from an
+   entry point, so no entry can load the app without them — missing these
+   makes every component's padding, background and size invalid at once. */
+@import "./lib/ui/tokens.css";
+
+:root {
+    font-family:
+        -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+        system-ui, sans-serif;
+    font-size: var(--ui-body);
+    line-height: 1.35;
+    color-scheme: light dark;
+    -webkit-font-smoothing: antialiased;
+}
+
+* {
+    box-sizing: border-box;
+    /* The webview's own tap rectangle fights every :active style in the kit. */
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    margin: 0;
+    background: var(--ui-page);
+    color: var(--ui-text);
+    overscroll-behavior-y: none;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+a {
+    color: var(--ui-accent);
+    text-decoration: none;
+}
+
+:focus-visible {
+    outline: 2px solid var(--ui-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms;
+        transition-duration: 0.01ms;
+    }
+}
