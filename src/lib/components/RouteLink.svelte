@@ -78,14 +78,19 @@ let {
 <style>
 .source,
 .dest {
+    --rail-w: 1.5px;
+    --rail-pad: 11px;
+    --rail-x: calc(var(--rail-pad) + var(--ui-avatar) / 2);
+    --rail-y: calc(9px + var(--ui-avatar) / 2);
+    --rail-arm: 13px;
     position: relative;
     display: flex;
     align-items: flex-start;
     gap: var(--ui-gap);
-    padding: 9px var(--ui-gutter);
+    padding: 9px var(--ui-gutter) 9px var(--rail-pad);
 }
 .dest {
-    padding-left: calc(var(--ui-gutter) + 22px);
+    padding-left: calc(var(--rail-x) + var(--rail-arm));
 }
 .dest:not(:last-child)::after {
     content: "";
@@ -123,16 +128,13 @@ let {
         background: var(--ui-hover);
     }
 }
+/* The stroke is translucent, so two of them must never cross: where they do,
+   the colour doubles and the junction shows as a dark pip. Hence the width in
+   a variable — the arm starts where the stem's stroke ends. */
 .rail {
-    /* The stroke is translucent, so two of them must never cross: where they
-       do, the colour doubles and the junction shows as a dark pip. Hence the
-       width in a variable — the arm starts where the stem's stroke ends. */
-    --rail-w: 1.5px;
-    --rail-x: calc(var(--ui-gutter) + var(--ui-avatar) / 2);
-    --rail-y: calc(9px + var(--ui-avatar) / 2);
     position: absolute;
     left: var(--rail-x);
-    width: 22px;
+    width: var(--rail-arm);
     pointer-events: none;
 }
 .dest > .stem {
@@ -149,7 +151,7 @@ let {
 .dest > .arm {
     top: var(--rail-y);
     left: calc(var(--rail-x) + var(--rail-w));
-    width: calc(22px - var(--rail-w));
+    width: calc(var(--rail-arm) - var(--rail-w));
     border-bottom: var(--rail-w) solid var(--ui-rail);
 }
 .source > .stem.from {

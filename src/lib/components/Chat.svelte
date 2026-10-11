@@ -46,6 +46,7 @@ let {
 }
 .name {
     font-size: var(--ui-body);
+    font-weight: var(--ui-weight-button);
     line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;

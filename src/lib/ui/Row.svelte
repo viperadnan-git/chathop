@@ -35,6 +35,7 @@ const tappable = $derived(!!onclick && !disabled);
     this={onclick ? "button" : "div"}
     class="ui-row {tone}"
     class:tappable
+    class:iconed={!!leading}
     role={onclick ? "button" : undefined}
     disabled={onclick ? disabled : undefined}
     onclick={tappable ? onclick : undefined}
@@ -90,11 +91,14 @@ const tappable = $derived(!!onclick && !disabled);
 .ui-row:disabled {
     opacity: 0.45;
 }
+.iconed {
+    padding-left: 11px;
+}
 .leading {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--ui-leading);
+    width: 24px;
     flex-shrink: 0;
     color: var(--ui-text);
 }
