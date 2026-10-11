@@ -9,13 +9,13 @@ let {
     sourceChatId,
     sourceName,
     routes,
-    chips,
+    marks,
     onopen,
 }: {
     sourceChatId: number;
     sourceName?: string;
     routes: Route[];
-    chips?: (route: Route) => string[];
+    marks?: (route: Route) => string[];
     onopen?: (route: Route) => void;
 } = $props();
 </script>
@@ -29,7 +29,7 @@ let {
     </div>
 
     {#each routes as route, i (route.id)}
-        {@const tags = chips?.(route) ?? []}
+        {@const glyphs = marks?.(route) ?? []}
         {@const last = i === routes.length - 1}
         <div class="dest" class:off={route.status !== "active"}>
             {#if onopen}
@@ -49,17 +49,25 @@ let {
                 muted={route.status !== "active"}
             >
                 {#snippet description()}
-                    <CopyId id={route.destChatId} />
-                    {#if route.status !== "active" || tags.length}
-                        <span class="chips">
-                            {#if isStopped(route.status)}
-                                <span class="chip stopped">stopped</span>
-                            {:else if route.status === "paused"}
-                                <span class="chip">paused</span>
-                            {/if}
-                            {#each tags as tag}<span class="chip">{tag}</span>{/each}
-                        </span>
-                    {/if}
+                    {@const off = route.status !== "active"}
+                    <span class="line">
+                        <CopyId id={route.destChatId} />
+                        {#if off || glyphs.length}
+                            <span class="sep"></span>
+                            <span class="marks">
+                                {#if isStopped(route.status)}
+                                    <span class="stopped">
+                                        <Icon name="block" size={13} stroke={2.3} />
+                                    </span>
+                                {:else if route.status === "paused"}
+                                    <Icon name="pause" size={13} stroke={2.3} />
+                                {/if}
+                                {#each glyphs as glyph (glyph)}
+                                    <Icon name={glyph} size={13} stroke={2.2} />
+                                {/each}
+                            </span>
+                        {/if}
+                    </span>
                 {/snippet}
             </Chat>
             {#if onopen}<span class="chevron"><Icon name="next" size={16} /></span>{/if}
@@ -149,18 +157,36 @@ let {
     bottom: 0;
     border-left: var(--rail-w) solid var(--ui-rail);
 }
-.chips {
+/* An id is the same width for every chat; a name would not have been. */
+.line {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 5px;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    margin-top: 3px;
 }
-.chip {
-    padding: 2px 7px;
-    border-radius: var(--ui-r-pill);
-    background: var(--ui-inset);
+/* The id carries that offset everywhere else; here the line does. */
+.line :global(.cid) {
+    margin-top: 0;
+}
+.sep {
+    width: 1px;
+    height: 11px;
+    flex: none;
+    /* Cancels the copy button's padding, which sits inside the id's box. */
+    margin-left: -6px;
+    background: var(--ui-rail);
+}
+.marks {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
     color: var(--ui-muted);
-    font-size: 11px;
+}
+.marks .stopped {
+    display: flex;
+    color: var(--ui-danger);
 }
 .stopped {
     color: var(--ui-danger);

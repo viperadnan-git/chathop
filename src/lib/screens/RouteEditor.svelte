@@ -11,7 +11,9 @@ import {
 } from "$config";
 import { isStopped, statusLabel } from "$status";
 import * as api from "../api";
+import Deliveries from "../components/Deliveries.svelte";
 import RouteLink from "../components/RouteLink.svelte";
+import RoutePath from "../components/RoutePath.svelte";
 import RulePane from "../components/RulePane.svelte";
 import type { Pane } from "../router";
 import { requestChat, TOO_OLD } from "../telegram";
@@ -28,7 +30,6 @@ import Choices from "../ui/Choices.svelte";
 import { alert, ask } from "../ui/confirm.svelte";
 import HeaderAction from "../ui/HeaderAction.svelte";
 import Heading from "../ui/Heading.svelte";
-import Hero from "../ui/Hero.svelte";
 import Icon from "../ui/Icon.svelte";
 import IconButton from "../ui/IconButton.svelte";
 import Note from "../ui/Note.svelte";
@@ -179,7 +180,9 @@ async function save() {
                 ? {}
                 : { status: active ? "active" : "paused" }),
         });
-        onclose();
+        // What was saved is the new baseline, or Save stays lit and
+        // backing out asks about changes already written.
+        openedConfig = withDefaults($state.snapshot(config));
     } catch (e) {
         await alert("Could not save", api.message(e));
     } finally {
@@ -235,21 +238,25 @@ const addedText = $derived(
 {/snippet}
 
 <Sheet title="Destination" onback={onclose} action={saveAction}>
-    <Hero
-        title={String(route.destName || route.destChatId)}
-        chatId={route.destChatId}
-    >
-        {#snippet lede()}
-            {#if active}
-                Receiving new messages from
-                <b>{route.sourceName || route.sourceChatId}</b>
-            {:else if stopped}
-                Stopped — {statusLabel(route.status)}
-            {:else}
-                Paused — nothing is being sent here
-            {/if}
-        {/snippet}
-    </Hero>
+    <RoutePath
+        sourceChatId={route.sourceChatId}
+        sourceName={route.sourceName}
+        destChatId={route.destChatId}
+        destName={String(route.destName || route.destChatId)}
+        tone={serverActive ? "on" : stopped ? "bad" : "off"}
+    />
+    {@const from = route.sourceName || route.sourceChatId}
+    {@const to = route.destName || route.destChatId}
+    <p class="lede">
+        {#if serverActive}
+            Every new message in <b>{from}</b> is copied to <b>{to}</b>.
+        {:else if stopped}
+            {statusLabel(route.status)} — nothing goes from <b>{from}</b> to
+            <b>{to}</b>.
+        {:else}
+            Paused — nothing goes from <b>{from}</b> to <b>{to}</b>.
+        {/if}
+    </p>
 
     <Heading title="Route">
         {#snippet trailing()}
@@ -270,7 +277,6 @@ const addedText = $derived(
         <Note>Changed {changed}.</Note>
     {/if}
 
-    <Heading title="Status" />
     {#if stopped}
         <Alert>
             I stopped this forward: {statusLabel(route.status)}.
@@ -292,21 +298,14 @@ const addedText = $derived(
             <Note>Fix it in Telegram, then switch it back on.</Note>
         {/if}
     {/if}
+
+    <Heading title="Status" />
     <Card>
         <Row label="Forwarding active">
             {#snippet detail()}{@render statusHint()}{/snippet}
             {#snippet trailing()}<Toggle bind:checked={active} label="Forwarding active" />{/snippet}
         </Row>
-        <Row
-            label={delivered
-                ? `Last delivery ${delivered}`
-                : route.forwarded
-                  ? "Delivered"
-                  : "No deliveries yet"}
-            description={route.forwarded
-                ? `${route.forwarded.toLocaleString()} forwarded in total`
-                : ""}
-        />
+        <Deliveries forwarded={route.forwarded} last={delivered} />
     </Card>
 
     <Heading title="Delivery" />
@@ -460,3 +459,15 @@ const addedText = $derived(
 {#if pane}
     <RulePane {pane} bind:config onclose={() => onpane(null)} />
 {/if}
+
+<style>
+.lede {
+    margin: -6px auto 0;
+    max-width: min(18rem, 100% - 2.5rem);
+    text-align: center;
+    text-wrap: balance;
+    font-size: var(--ui-note);
+    line-height: 1.4;
+    color: var(--ui-muted);
+}
+</style>

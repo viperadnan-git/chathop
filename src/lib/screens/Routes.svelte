@@ -45,23 +45,22 @@ const grouped = $derived.by(() => {
     return [...bySource].sort(([a], [b]) => a - b);
 });
 
-function chips(route: Route): string[] {
+function marks(route: Route): string[] {
     const c = withDefaults(route.config);
     const out: string[] = [];
     if (c.mode === "forward") out.push("forward");
-    if (c.protectContent) out.push("protected");
-    if (c.silent) out.push("silent");
-    if (c.removeButtons) out.push("no buttons");
-    if (c.filters.whitelist.length)
-        out.push(`${c.filters.whitelist.length} allow`);
-    if (c.filters.blacklist.length)
-        out.push(`${c.filters.blacklist.length} block`);
-    if (c.caption.strip) return [...out, "no caption"];
-    if (c.caption.removeLinks) out.push("no links");
-    if (c.caption.removeMentions) out.push("no mentions");
-    if (c.caption.prepend || c.caption.append) out.push("signature");
-    if (c.caption.replace.length)
-        out.push(`${c.caption.replace.length} replace`);
+    if (c.filters.whitelist.length) out.push("allow");
+    if (c.filters.blacklist.length) out.push("block");
+    if (
+        c.caption.strip ||
+        c.caption.removeLinks ||
+        c.caption.removeMentions ||
+        c.caption.prepend ||
+        c.caption.append ||
+        c.caption.replace.length
+    )
+        out.push("keyword");
+    if (c.protectContent || c.silent || c.removeButtons) out.push("gear");
     return out;
 }
 
@@ -96,7 +95,7 @@ const plural = (n: number, one: string, many = `${one}s`) =>
                 sourceChatId={source}
                 sourceName={dests[0].sourceName}
                 routes={dests}
-                {chips}
+                marks={marks}
                 {onopen}
             />
         {/each}
