@@ -38,7 +38,7 @@ export async function photosFor(chatIds, known = {}) {
     const changed = [];
     for (const row of rows) {
         if (!row.photoId) continue;
-        live.add(String(row.chatId));
+        live.add(row.chatId);
         if (known[row.chatId] !== row.photoId) changed.push(row.chatId);
     }
 
@@ -58,6 +58,8 @@ export async function photosFor(chatIds, known = {}) {
         };
     }
 
-    const drop = Object.keys(known).filter((id) => !live.has(String(id)));
+    // Looked at, and there is none. A chat this call would not answer for
+    // is in none of the three lists, so the caller may ask again.
+    const drop = chatIds.filter((id) => !live.has(id)).map(String);
     return { photos, drop, more };
 }

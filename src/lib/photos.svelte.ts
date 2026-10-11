@@ -28,9 +28,14 @@ async function flush() {
             drop,
             more,
         } = await api.chatPhotos(known, ids);
-        // Bounded reply: forget the ones it left out, so the next screen that
-        // needs them asks again.
-        for (const id of more ?? []) asked.delete(Number(id));
+        // Said nothing about it, so it served nothing: forget having
+        // asked, and the next screen that needs it tries again.
+        const answered = new Set([
+            ...Object.keys(changed),
+            ...drop,
+            ...(more ?? []).map(String),
+        ]);
+        for (const id of ids) if (!answered.has(String(id))) asked.delete(id);
         if (!Object.keys(changed).length && !drop.length) return;
 
         for (const id of drop) delete byChat[Number(id)];
