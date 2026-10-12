@@ -27,10 +27,6 @@ export async function createForward(userId, source, dest) {
             };
     }
 
-    if (await store.wouldLoop(source.id, dest.id)) {
-        return { ok: false, code: "LOOP" };
-    }
-
     return {
         ...(await store.createRoute(userId, source.id, dest.id)),
         ok: true,

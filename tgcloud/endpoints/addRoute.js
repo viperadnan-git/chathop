@@ -4,7 +4,6 @@ import { createForward } from "../lib/forwards.js";
 
 const REFUSAL = {
     SAME_CHAT: "A chat cannot forward to itself.",
-    LOOP: "Those two already forward into each other.",
 };
 
 export default async function (input, ctx) {

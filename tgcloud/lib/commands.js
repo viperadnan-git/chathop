@@ -119,9 +119,6 @@ function forwardReply(made, source, dest) {
             : `${from} → ${to} was already set.`;
     }
     if (made.code === "SAME_CHAT") return "A chat cannot forward to itself.";
-    if (made.code === "LOOP") {
-        return `${to} already forwards back into ${from}. That would loop for ever.`;
-    }
     return made.end === "source"
         ? `Cannot forward out of ${from}: ${escapeHtml(made.why)}.`
         : `Cannot forward into ${to}: ${escapeHtml(made.why)}.`;

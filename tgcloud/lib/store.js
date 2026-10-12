@@ -318,33 +318,6 @@ export async function createRoute(userId, sourceChatId, destChatId) {
  * landing in a chat is a new message there whoever set the next hop up, and
  * across every status, since a paused route can be resumed.
  */
-export async function wouldLoop(sourceChatId, destChatId) {
-    const edges = new Map();
-    for (const hop of await db
-        .select({
-            sourceChatId: routes.sourceChatId,
-            destChatId: routes.destChatId,
-        })
-        .from(routes)
-        .all()) {
-        const out = edges.get(hop.sourceChatId);
-        if (out) out.push(hop.destChatId);
-        else edges.set(hop.sourceChatId, [hop.destChatId]);
-    }
-
-    const seen = new Set([destChatId]);
-    const frontier = [destChatId];
-    while (frontier.length) {
-        for (const next of edges.get(frontier.pop()) ?? []) {
-            if (next === sourceChatId) return true;
-            if (seen.has(next)) continue;
-            seen.add(next);
-            frontier.push(next);
-        }
-    }
-    return false;
-}
-
 export async function updateRoute(id, patch) {
     const [row] = await db
         .update(routes)

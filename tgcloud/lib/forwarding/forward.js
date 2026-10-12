@@ -184,6 +184,13 @@ const isServiceMessage = (msg) => SERVICE_FIELDS.some((field) => field in msg);
 
 export async function fanOut(msg) {
     if (isServiceMessage(msg)) return;
+    // The bot never sees its own messages, so the only way its output can come
+    // back as an update is Telegram echoing a channel post into the linked
+    // discussion group. Dropping that echo makes a forwarding loop impossible.
+    // ponytail: blunt — it also drops echoes a group route might legitimately
+    // want. Route the channel itself instead; narrow this to cycle detection
+    // only if someone actually needs the echo.
+    if (msg.is_automatic_forward) return;
 
     const sourceChatId = msg.chat.id;
     const routes = await store.activeRoutes(sourceChatId);
