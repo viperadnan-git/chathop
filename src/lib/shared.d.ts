@@ -55,4 +55,8 @@ declare module "$status" {
     export const ROUTE_STATUS: Record<string, string>;
     export function statusLabel(status: string): string;
     export function isStopped(status: string): boolean;
+    export function stuckReason(
+        broken: { end: "source" | "destination"; name: string }[],
+        options?: { fix?: string },
+    ): string;
 }

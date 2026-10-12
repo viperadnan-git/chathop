@@ -8,6 +8,7 @@ let {
     detail,
     value = "",
     valueTone = "",
+    strong = false,
     chevron = false,
     tone = "",
     disabled = false,
@@ -19,7 +20,10 @@ let {
     description?: string;
     detail?: Snippet;
     value?: string;
-    valueTone?: "" | "danger";
+    /** accent: an action rather than a reading. */
+    valueTone?: "" | "danger" | "accent";
+    /** A name, not a setting: carries the weight the kit gives chat names. */
+    strong?: boolean;
     chevron?: boolean;
     tone?: "" | "accent" | "danger";
     disabled?: boolean;
@@ -43,7 +47,7 @@ const tappable = $derived(!!onclick && !disabled);
     {#if leading}<span class="leading">{@render leading()}</span>{/if}
 
     <span class="text">
-        <span class="label">{label}</span>
+        <span class="label" class:strong>{label}</span>
         {#if detail}
             <span class="description"><!-- a changing value: see StableText -->
                 {@render detail()}
@@ -55,11 +59,17 @@ const tappable = $derived(!!onclick && !disabled);
 
     {#if trailing}
         <span class="trailing">{@render trailing()}</span>
-    {:else if value}
-        <span class="value {valueTone}">{value}</span>
     {/if}
 
-    {#if chevron}<span class="chevron"><Icon name="next" size={16} /></span>{/if}
+    <!-- A worded action and its chevron are one control, not two columns. -->
+    {#if value || chevron}
+        <span class="end {valueTone}">
+            {#if value}<span class="value">{value}</span>{/if}
+            {#if chevron}
+                <span class="chevron"><Icon name="next" size={16} /></span>
+            {/if}
+        </span>
+    {/if}
 </svelte:element>
 
 <style>
@@ -83,7 +93,7 @@ const tappable = $derived(!!onclick && !disabled);
 .tappable:active {
     background: var(--ui-press);
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
     .tappable:hover {
         background: var(--ui-hover);
     }
@@ -98,7 +108,8 @@ const tappable = $derived(!!onclick && !disabled);
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
+    /* A glyph is 24; an avatar sizes itself. */
+    min-width: 24px;
     flex-shrink: 0;
     color: var(--ui-text);
 }
@@ -120,15 +131,29 @@ const tappable = $derived(!!onclick && !disabled);
     line-height: 1.35;
     color: var(--ui-muted);
 }
-.value,
+.end,
 .trailing {
     flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 8px;
 }
-.value.danger {
+/* The words and the chevron are the same control, so they sit together. */
+.end {
+    gap: 2px;
+}
+.end.danger .value {
     color: var(--ui-danger);
+}
+.end.accent .value,
+.end.accent .chevron {
+    color: var(--ui-button-bg);
+}
+.end.accent .value {
+    font-weight: var(--ui-weight-button);
+}
+.label.strong {
+    font-weight: var(--ui-weight-button);
 }
 .value {
     color: var(--ui-muted);

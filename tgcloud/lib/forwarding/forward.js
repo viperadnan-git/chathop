@@ -98,7 +98,15 @@ async function onFailure(config, route, sourceChatId, msg, error) {
     const verdict = classify(error);
 
     if (verdict.kind === "permanent") {
-        await store.stopRoute(route.id, verdict.status);
+        // Recorded against the chat it was posting into: a status alone
+        // cannot say which end to go and fix.
+        await Promise.all([
+            store.stopRoute(route.id, verdict.status),
+            store.notePostRights(route.destChatId, {
+                ok: false,
+                status: verdict.status,
+            }),
+        ]);
         console.warn(`route ${route.id} stopped: ${verdict.status}`);
         return;
     }
@@ -115,11 +123,22 @@ async function onFailure(config, route, sourceChatId, msg, error) {
     }
 
     if (verdict.kind === "migrate") {
-        // The error carries the new id but not which of the two chats moved, and
-        // the send touched both. Rewriting the wrong one would point every route
-        // at the source, so ask Telegram which id actually changed.
-        const moved = await whichMoved(sourceChatId, route.destChatId);
-        if (!moved) return;
+        // The error names the new id but not which end moved, and the send
+        // touched both. When getChat cannot say either, only a destination
+        // that would not resolve can be it — guessing rewrites a live chat.
+        const asked = await whichMoved(sourceChatId, route.destChatId);
+        const moved = asked.from
+            ? asked
+            : asked.unresolved.length === 1 &&
+                asked.unresolved[0] === route.destChatId
+              ? { from: route.destChatId, to: verdict.toChatId }
+              : undefined;
+        if (!moved) {
+            console.warn(
+                `route ${route.id}: a chat moved to ${verdict.toChatId}, but which end is unclear`,
+            );
+            return;
+        }
 
         await store.migrateChat(moved.from, moved.to);
         // A moved source is not retried: this update belongs to the old chat,
@@ -130,15 +149,18 @@ async function onFailure(config, route, sourceChatId, msg, error) {
 }
 
 async function whichMoved(sourceChatId, destChatId) {
+    const unresolved = [];
     for (const id of [destChatId, sourceChatId]) {
         try {
             const chat = await api.getChat({ chat_id: id });
             if (chat.id !== id) return { from: id, to: chat.id };
         } catch {
-            // Unreachable tells us nothing about which one moved; try the other.
+            // Which end this was matters: only an id getChat cannot resolve
+            // can be the one that moved.
+            unresolved.push(id);
         }
     }
-    return undefined;
+    return { unresolved };
 }
 
 // Joins, leaves, pins, renames and the rest. Telegram cannot copy or forward

@@ -5,7 +5,7 @@ export {
     parseConfig,
     withDefaults,
 } from "$config";
-export { isStopped, ROUTE_STATUS, statusLabel } from "$status";
+export { isStopped, ROUTE_STATUS, statusLabel, stuckReason } from "$status";
 
 import type { RouteConfig } from "./config-types";
 
@@ -16,6 +16,13 @@ export type {
     RouteStatus,
     Rule,
 } from "./config-types";
+
+export type BrokenEnd = {
+    end: "source" | "destination";
+    chatId: number;
+    name: string;
+    type: string | null;
+};
 
 export type Replacement = RouteConfig["caption"]["replace"][number];
 
@@ -31,6 +38,7 @@ export type Route = {
     statusLabel?: string;
     sourceName: string;
     destName: string;
+    broken?: BrokenEnd[];
     updatedAt?: string;
 };
 

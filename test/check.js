@@ -18,7 +18,7 @@ import {
 } from "../tgcloud/lib/forwarding/filters.js";
 import { checkPattern } from "../tgcloud/lib/forwarding/regex.js";
 import { applyCaption, clamp } from "../tgcloud/lib/forwarding/transforms.js";
-import { classify } from "../tgcloud/lib/health.js";
+import { brokenEnds, classify } from "../tgcloud/lib/health.js";
 import { isPresent, postVerdict } from "../tgcloud/lib/rights.js";
 
 const caption = (over = {}) => ({ ...defaultConfig().caption, ...over });
@@ -320,6 +320,26 @@ const caption = (over = {}) => ({ ...defaultConfig().caption, ...over });
         "a group admin needs no posting right",
     );
     assert.deepEqual(postVerdict("group", { status: "member" }), { ok: true });
+    assert.deepEqual(
+        postVerdict(
+            "group",
+            { status: "member" },
+            {
+                permissions: { can_send_messages: true },
+            },
+        ),
+        { ok: true },
+    );
+    assert.deepEqual(
+        postVerdict(
+            "group",
+            { status: "member" },
+            {
+                permissions: { can_send_messages: false },
+            },
+        ),
+        { ok: false, status: "no_rights" },
+    );
     assert.deepEqual(postVerdict("channel", { status: "member" }), {
         ok: false,
         status: "not_admin",
@@ -652,5 +672,42 @@ console.log("ok");
     });
     assert.equal(preview(both, draft()).verdict.list, "block");
 }
+
+// --- which ends broke -----------------------------------------------------
+{
+    const ok = { facts: { canPost: true, block: null } };
+    const absent = (block) => ({ facts: { canPost: false, block } });
+    const unpostable = { facts: { canPost: false, block: "not_admin" } };
+
+    assert.deepEqual(brokenEnds(ok, ok), []);
+    for (const block of ["removed", "blocked", "gone"])
+        assert.deepEqual(brokenEnds(absent(block), ok), ["source"]);
+    assert.deepEqual(brokenEnds(ok, unpostable), ["destination"]);
+
+    // Both ends at once: each needs its own repair, and the source is offered
+    // first because nothing can be posted while nothing can be read.
+    assert.deepEqual(brokenEnds(absent("removed"), unpostable), [
+        "source",
+        "destination",
+    ]);
+    assert.deepEqual(brokenEnds(absent("removed"), absent("removed")), [
+        "source",
+        "destination",
+    ]);
+    assert.deepEqual(brokenEnds(absent("gone"), absent("blocked")), [
+        "source",
+        "destination",
+    ]);
+
+    // A chat the bot cannot post to is still readable, so as a source it is
+    // not the thing to fix.
+    assert.deepEqual(brokenEnds(unpostable, ok), []);
+    assert.deepEqual(brokenEnds(unpostable, unpostable), ["destination"]);
+
+    assert.deepEqual(brokenEnds(undefined, undefined), []);
+    assert.deepEqual(brokenEnds({ facts: null }, { facts: null }), []);
+    assert.deepEqual(brokenEnds({}, {}), []);
+}
+console.log("ends ok");
 
 console.log("preview ok");

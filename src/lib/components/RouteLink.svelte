@@ -31,7 +31,7 @@ let {
     {#each routes as route, i (route.id)}
         {@const glyphs = marks?.(route) ?? []}
         {@const last = i === routes.length - 1}
-        <div class="dest" class:off={route.status !== "active"}>
+        <div class="dest">
             {#if onopen}
                 <button
                     type="button"
@@ -48,20 +48,24 @@ let {
                 name={route.destName}
                 muted={route.status !== "active"}
             >
+                {#snippet badge()}
+                    {#if route.status !== "active"}
+                        {@const halted = isStopped(route.status)}
+                        <span class:stopped={halted} class:paused={!halted}>
+                            <Icon
+                                name={halted ? "block" : "pause"}
+                                size={14}
+                                stroke={2.3}
+                            />
+                        </span>
+                    {/if}
+                {/snippet}
                 {#snippet description()}
-                    {@const off = route.status !== "active"}
                     <span class="line">
                         <CopyId id={route.destChatId} />
-                        {#if off || glyphs.length}
+                        {#if glyphs.length}
                             <span class="sep"></span>
                             <span class="marks">
-                                {#if isStopped(route.status)}
-                                    <span class="stopped">
-                                        <Icon name="block" size={13} stroke={2.3} />
-                                    </span>
-                                {:else if route.status === "paused"}
-                                    <Icon name="pause" size={13} stroke={2.3} />
-                                {/if}
                                 {#each glyphs as glyph (glyph)}
                                     <Icon name={glyph} size={13} stroke={2.2} />
                                 {/each}
@@ -123,7 +127,7 @@ let {
 .hit:active {
     background: var(--ui-press);
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
     .hit:hover {
         background: var(--ui-hover);
     }
@@ -186,12 +190,11 @@ let {
     flex: none;
     color: var(--ui-muted);
 }
-.marks .stopped {
-    display: flex;
-    color: var(--ui-danger);
-}
 .stopped {
     color: var(--ui-danger);
+}
+.paused {
+    color: var(--ui-muted);
 }
 .chevron {
     display: flex;

@@ -73,7 +73,8 @@ async function choose(role: Role, kind: Kind) {
 
         const picked = await requestChat(buttons[kind]);
         if (picked === "unsupported") error = TOO_OLD;
-        else if (picked === "picked") await settle(role);
+        // `unknown` means Telegram never said: the server is the only witness.
+        else if (picked !== "cancelled") await settle(role);
     } catch (e) {
         error = api.message(e);
     } finally {

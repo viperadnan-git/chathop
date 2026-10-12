@@ -1,6 +1,6 @@
 import { api } from "sdk";
 import { botId } from "./app.js";
-import { classify } from "./health.js";
+import { ABSENT, classify } from "./health.js";
 import { isPresent, postVerdict } from "./rights.js";
 import * as store from "./store.js";
 
@@ -78,10 +78,14 @@ export async function canBotPost(chat) {
             ? { ok: false, status: verdict.status }
             : { ok: false, status: "unprovable" };
     }
-    return postVerdict(chat.type, member);
+    return postVerdict(chat.type, member, chat);
 }
 
-export async function botIsIn(chatId) {
+/**
+ * `undefined` when the answer proves nothing — a 429 or a 5xx must never read
+ * as "gone", or a flood of them stops every route through the chat.
+ */
+export async function botPresence(chatId) {
     try {
         return isPresent(
             await api.getChatMember({
@@ -89,19 +93,20 @@ export async function botIsIn(chatId) {
                 user_id: await botId(),
             }),
         );
-    } catch {
-        return false;
+    } catch (error) {
+        return classify(error).kind === "permanent" ? false : undefined;
     }
 }
 
 export async function reconcileChat(chat, verdict) {
     await store.notePostRights(chat.id, verdict);
 
-    if (verdict && !verdict.ok && verdict.status !== "unprovable") {
+    const blocked = verdict && !verdict.ok && verdict.status !== "unprovable";
+    const gone = blocked && ABSENT.includes(verdict.status);
+
+    if (blocked) {
         // Gone from the chat breaks both ends; present but unable to post
         // breaks only the routes that post into it.
-        const gone =
-            verdict.status === "removed" || verdict.status === "blocked";
         const stopped = await store.stopRoutesForChat(
             chat.id,
             verdict.status,
@@ -111,15 +116,17 @@ export async function reconcileChat(chat, verdict) {
             console.info(
                 `chat ${chat.id} ${verdict.status}: ${stopped} stopped`,
             );
-        return -stopped;
+        if (gone) return -stopped;
     }
 
-    // Reading a source needs membership, which getChat answered; posting into
-    // a destination needs rights, which only a verdict answers.
-    let revived = await store.reviveRoutesForChat(chat.id, {
-        scope: "source",
-    });
-    if (!verdict || verdict.ok || verdict.status === "unprovable") {
+    // Posting and reading are different rights. An admin that cannot post
+    // still sees every message, so a source is readable again — except in a
+    // channel the bot is only a member of, where it sees nothing.
+    let revived =
+        blocked && verdict.status === "not_admin"
+            ? 0
+            : await store.reviveRoutesForChat(chat.id, { scope: "source" });
+    if (!blocked) {
         revived += await store.reviveRoutesForChat(chat.id, {
             scope: "destination",
         });

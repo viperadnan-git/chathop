@@ -40,7 +40,7 @@ const [owner, name] = path.split("/");
 .repo:active {
     background: var(--ui-press);
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
     .repo:hover {
         background: var(--ui-hover);
     }

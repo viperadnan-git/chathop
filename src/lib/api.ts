@@ -79,10 +79,14 @@ export const createRoute = (sourceChatId: number, destChatId: number) =>
 export const listRoutes = () =>
     call<{ routes: Route[] }>("getRoutes").then((r) => r.routes);
 
-export const refreshChatNames = () =>
-    call<{ updated: number; failed: number; revived: number; routes: Route[] }>(
-        "refreshChats",
-    );
+export const refreshChatNames = (routeId?: string) =>
+    call<{
+        updated: number;
+        failed: number;
+        revived: number;
+        stopped: number;
+        routes: Route[];
+    }>("refreshChats", { routeId });
 
 export const updateRoute = (
     id: string,

@@ -23,9 +23,16 @@ import Private from "./lib/screens/Private.svelte";
 import RouteEditor from "./lib/screens/RouteEditor.svelte";
 import Routes from "./lib/screens/Routes.svelte";
 import { cached, forget, remember } from "./lib/snapshot.svelte";
-import { backButton, close, init, onBackButton } from "./lib/telegram";
-import type { Route, RouteConfig } from "./lib/types";
-import { isStopped } from "./lib/types";
+import {
+    backButton,
+    close,
+    init,
+    isPicking,
+    onBackButton,
+    onReturn,
+} from "./lib/telegram";
+import type { BrokenEnd, Route, RouteConfig } from "./lib/types";
+import { isStopped, statusLabel, stuckReason } from "./lib/types";
 import { alert, ask } from "./lib/ui/confirm.svelte";
 import Dialog from "./lib/ui/Dialog.svelte";
 
@@ -64,12 +71,25 @@ $effect(() => {
     });
 });
 
+// Stored state only: re-checking every chat costs a call each, which is what
+// Refresh is for. A picker's return is the caller's, and it polls this itself.
+let returning = false;
+onReturn(async () => {
+    if (!loaded || refreshing || returning || isPicking()) return;
+    returning = true;
+    try {
+        await load();
+    } finally {
+        returning = false;
+    }
+});
+
 async function report(message: string) {
     if (isOverlay(loc)) await alert("That did not work", message);
     else error = message;
 }
 
-async function confirmRefresh() {
+async function confirmRefresh(id: string) {
     const ok = await ask(
         "Refresh this forward?",
         [
@@ -79,35 +99,46 @@ async function confirmRefresh() {
         "Refresh",
         false,
     );
-    if (ok) await refresh();
+    if (ok) await refresh(id);
 }
 
 // Bumped by everything that writes `routes`, so a poll answer issued before a
 // save or a delete cannot land on top of it.
 let generation = 0;
 
-async function recheck(id: string) {
+function whyStuck(route: Route, end?: BrokenEnd["end"]): string {
+    const broken = (route.broken ?? []).filter((b) => !end || b.end === end);
+    return broken.length
+        ? stuckReason(broken)
+        : `It is still stopped: ${statusLabel(route.status)}.`;
+}
+
+/** `end`: the one just reconnected. Another end still waiting is the next
+ * step, not a failure, so only that end decides whether this worked. */
+async function recheck(id: string, end?: BrokenEnd["end"]) {
     const mine = ++generation;
     refreshing = true;
     error = "";
     try {
-        const healthy = (list: Route[]) => {
+        const settled = (list: Route[]) => {
             // Superseded: stop, rather than overwrite what replaced us.
             if (mine !== generation) return true;
             routes = list;
             const route = list.find((r) => r.id === id);
-            return !!route && !isStopped(route.status);
+            if (!route) return true;
+            return end
+                ? !(route.broken ?? []).some((b) => b.end === end)
+                : !isStopped(route.status);
         };
 
-        if (await until(() => api.listRoutes(), healthy)) return;
+        if (await until(() => api.listRoutes(), settled)) return;
         if (mine !== generation) return;
 
-        const forced = await api.refreshChatNames();
-        if (!healthy(forced.routes)) {
-            await report(
-                "I still cannot post in that chat. Check my admin rights there.",
-            );
-        }
+        const forced = await api.refreshChatNames(id);
+        // settled() has already returned true if the route is gone.
+        const route = forced.routes.find((r) => r.id === id);
+        if (route && !settled(forced.routes))
+            await report(whyStuck(route, end));
     } catch (e) {
         await report(api.message(e));
     } finally {
@@ -115,14 +146,14 @@ async function recheck(id: string) {
     }
 }
 
-async function refresh() {
+async function refresh(id: string) {
     generation++;
     refreshing = true;
     error = "";
     try {
         const result = await run(
-            () => api.refreshChatNames(),
-            (r) => (r.failed ? "warning" : "success"),
+            () => api.refreshChatNames(id),
+            (r) => (r.failed || r.stopped ? "warning" : "success"),
         );
         routes = result.routes;
         if (result.revived) {
@@ -298,8 +329,9 @@ else loading = false;
             onclose={back}
             ondelete={() => remove(editing.id)}
             ondirty={(d) => (editorDirty = d)}
-            onrefresh={confirmRefresh}
-            onfixed={() => recheck(editing.id)}
+            onrefresh={() => confirmRefresh(editing.id)}
+            onfixed={(end) => recheck(editing.id, end)}
+            onreread={load}
             {refreshing}
         />
     {/key}

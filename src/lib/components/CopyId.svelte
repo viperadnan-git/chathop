@@ -2,17 +2,12 @@
 import { impact } from "../haptics";
 import { copyText } from "../telegram";
 import Icon from "../ui/Icon.svelte";
+import ChatId from "./ChatId.svelte";
 
 let { id }: { id: number } = $props();
 
 let copied = $state(false);
 let timer: ReturnType<typeof setTimeout>;
-
-const parts = $derived(
-    String(id).startsWith("-100")
-        ? { pre: "-100", body: String(id).slice(4) }
-        : { pre: "", body: String(id) },
-);
 
 async function copy(event: MouseEvent) {
     // The row behind opens on tap; copying must not also navigate.
@@ -26,9 +21,7 @@ async function copy(event: MouseEvent) {
 </script>
 
 <span class="cid">
-    <span class="digits"
-        >{#if parts.pre}<span class="pre">{parts.pre}</span>{/if}{parts.body}</span
-    >
+    <ChatId {id} />
     <button
         type="button"
         class="copy"
@@ -48,22 +41,6 @@ async function copy(event: MouseEvent) {
     margin-top: 3px;
 }
 
-/* Inherits the row's pointer-events: none, so a tap here opens the route. */
-.digits {
-    color: var(--ui-text);
-    font-size: 13px;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.digits .pre {
-    color: var(--ui-muted);
-    opacity: 0.65;
-}
-
 .copy {
     display: flex;
     padding: 4px 6px;
@@ -79,7 +56,7 @@ async function copy(event: MouseEvent) {
     color: var(--ui-accent);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
     .copy:hover {
         color: var(--ui-text);
     }

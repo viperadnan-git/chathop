@@ -6,6 +6,7 @@ import {
     ruleIssue,
 } from "../lib/config.js";
 import { caller, forApp, ownedRoute } from "../lib/endpoint.js";
+import { brokenEnds, isStopped, stuckReason } from "../lib/health.js";
 import * as store from "../lib/store.js";
 
 // Telegram's own caption limit: longer could never be sent whole anyway.
@@ -46,6 +47,27 @@ export default async function (input, ctx) {
     // A stop reason is the server's to write, never the client's.
     if (input.status === "active" || input.status === "paused")
         patch.status = input.status;
+
+    // Switching a stopped route back on claims it is fixed, so check the last
+    // known facts before believing it. A paused route was never broken.
+    if (patch.status === "active" && isStopped(route.status)) {
+        const ends = await store.endsOf(route);
+        const broken = brokenEnds(ends.source, ends.dest).map((end) => ({
+            end,
+            name: ends.name(
+                end === "source" ? route.sourceChatId : route.destChatId,
+            ),
+        }));
+        // What is known, not what is true now: nothing tells the bot when a
+        // group's own permissions change, so Refresh is the way out.
+        if (broken.length)
+            throw new EndpointError(
+                stuckReason(broken, {
+                    fix: "Give me access there, or refresh to check again.",
+                }),
+                { code: "STILL_BROKEN" },
+            );
+    }
 
     if (Object.keys(patch).length === 0) {
         throw new EndpointError("Nothing to save.", { code: "EMPTY_PATCH" });

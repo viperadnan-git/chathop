@@ -16,6 +16,41 @@ export const ROUTE_STATUS = {
 
 export const statusLabel = (status) => ROUTE_STATUS[status] ?? "Stopped";
 
+// 'gone' belongs here: a chat never added answers like one that is gone.
+export const ABSENT = ["removed", "blocked", "gone"];
+
+/** The ends a user has to go and fix, from each end's last known facts. Both
+ * can be broken at once, and each needs its own repair. */
+export function brokenEnds(source, dest) {
+    const ends = [];
+    if (ABSENT.includes(source?.facts?.block)) ends.push("source");
+    if (dest?.facts?.canPost === false) ends.push("destination");
+    return ends;
+}
+
+/** One wording for both sides, so the endpoint's refusal and the app's report
+ * can never describe the same chat differently. `broken`: `[{ end, name }]`. */
+export const stuckReason = (
+    broken,
+    { fix = "Give me access there first." } = {},
+) =>
+    `${broken
+        .map(({ end, name }) =>
+            end === "source"
+                ? `I still cannot read ${name}`
+                : `I still cannot post in ${name}`,
+        )
+        .join(", and ")}. ${fix}`;
+
+/** What a post verdict proves about being in the chat at all, which is all a
+ * source needs; `undefined` proves nothing. An admin that cannot post still
+ * sees every message — except in a channel it is only a member of. */
+export function canRead(verdict) {
+    if (!verdict || verdict.status === "unprovable") return undefined;
+    if (ABSENT.includes(verdict.status)) return false;
+    return verdict.status !== "not_admin";
+}
+
 export const isStopped = (status) =>
     status !== "active" && status !== "paused" && status in ROUTE_STATUS;
 

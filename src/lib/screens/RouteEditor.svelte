@@ -11,6 +11,7 @@ import {
 } from "$config";
 import { isStopped, statusLabel } from "$status";
 import * as api from "../api";
+import ChatId from "../components/ChatId.svelte";
 import Deliveries from "../components/Deliveries.svelte";
 import RouteLink from "../components/RouteLink.svelte";
 import RoutePath from "../components/RoutePath.svelte";
@@ -25,6 +26,7 @@ import {
     withDefaults,
 } from "../types";
 import Alert from "../ui/Alert.svelte";
+import Avatar from "../ui/Avatar.svelte";
 import Card from "../ui/Card.svelte";
 import Choices from "../ui/Choices.svelte";
 import { alert, ask } from "../ui/confirm.svelte";
@@ -49,6 +51,7 @@ let {
     ondirty,
     onrefresh,
     onfixed,
+    onreread,
     refreshing,
 }: {
     route: Route;
@@ -59,7 +62,8 @@ let {
     ondelete: () => Promise<void>;
     ondirty: (dirty: boolean) => void;
     onrefresh: () => void;
-    onfixed: () => Promise<void>;
+    onfixed: (end?: "source" | "destination") => Promise<void>;
+    onreread: () => Promise<void>;
     refreshing: boolean;
 } = $props();
 
@@ -117,20 +121,39 @@ const CHAT_KINDS = [
     { value: "group", label: "Group", icon: "group" },
 ];
 const fixable = $derived(FIXABLE.includes(route.status));
-let fixing = $state(false);
+const culprit = $derived((route.broken ?? []).map((b) => b.name).join(" and "));
+const repairs = $derived(
+    (route.broken ?? [])
+        .filter((b) => b.type && b.type !== "private")
+        .map((b) => ({
+            ...b,
+            kind: (b.type === "channel" ? "channel" : "group") as
+                | "channel"
+                | "group",
+            what: b.type === "channel" ? "Channel" : "Group",
+        })),
+);
 
-async function fix(kind: "channel" | "group") {
-    if (fixing) return;
-    fixing = true;
+// The chat being connected, so one row waits without the others going quiet.
+let fixing = $state<number | "chooser" | null>(null);
+
+async function fix(
+    kind: "channel" | "group",
+    at: number | "chooser",
+    end?: "source" | "destination",
+) {
+    if (fixing !== null) return;
+    fixing = at;
     try {
         const buttons = await api.pickButtons("fix");
         const picked = await requestChat(buttons[kind]);
         if (picked === "unsupported") await alert("Update Telegram", TOO_OLD);
-        else if (picked === "picked") await onfixed();
+        else if (picked === "picked") await onfixed(end);
+        else if (picked === "unknown") await onreread();
     } catch (e) {
         await alert("That did not work", api.message(e));
     } finally {
-        fixing = false;
+        fixing = null;
     }
 }
 
@@ -251,8 +274,8 @@ const addedText = $derived(
         {#if serverActive}
             Every new message in <b>{from}</b> is copied to <b>{to}</b>.
         {:else if stopped}
-            {statusLabel(route.status)} — nothing goes from <b>{from}</b> to
-            <b>{to}</b>.
+            {statusLabel(route.status)}{#if culprit}: <b>{culprit}</b>{/if} —
+            nothing goes from <b>{from}</b> to <b>{to}</b>.
         {:else}
             Paused — nothing goes from <b>{from}</b> to <b>{to}</b>.
         {/if}
@@ -274,26 +297,93 @@ const addedText = $derived(
         routes={[route]}
     />
     {#if changed}
-        <Note>Changed {changed}.</Note>
+        <Note>Changed {changed}</Note>
     {/if}
 
     {#if stopped}
         <Alert>
-            I stopped this forward: {statusLabel(route.status)}.
+            I stopped this forward: {statusLabel(route.status)}{#if culprit}
+                — <b>{culprit}</b>{/if}.
         </Alert>
         {#if fixable}
             <Heading title="Give me access" />
-            <Card>
-                <Choices
-                    options={CHAT_KINDS}
-                    disabled={fixing || refreshing}
-                    onpick={(kind) => fix(kind as "channel" | "group")}
-                />
-            </Card>
-            <Note>
-                Telegram will ask which chat, and add me there with permission
-                to post. Pick the one this forward uses.
-            </Note>
+            {#if repairs.length}
+                <Card>
+                    {#each repairs as fixme (fixme.chatId)}
+                        {@const waiting = fixing === fixme.chatId}
+                        <Row
+                            label={fixme.name}
+                            value={waiting ? "" : "Connect"}
+                            valueTone="accent"
+                            strong
+                            chevron={!waiting}
+                            onclick={() =>
+                                fix(fixme.kind, fixme.chatId, fixme.end)}
+                        >
+                            {#snippet leading()}
+                                <Avatar
+                                    chatId={fixme.chatId}
+                                    name={fixme.name}
+                                    size="var(--ui-avatar)"
+                                />
+                            {/snippet}
+                            {#snippet detail()}
+                                {#if waiting}
+                                    Waiting for Telegram…
+                                {:else}
+                                    <span class="whatis">
+                                        <ChatId id={fixme.chatId} />
+                                        <span class="dot">·</span>
+                                        {CHAT_KINDS.find(
+                                            (k) => k.value === fixme.kind,
+                                        )?.label}
+                                    </span>
+                                {/if}
+                            {/snippet}
+                            {#snippet trailing()}
+                                {#if waiting}
+                                    <Icon name="spinner" size={18} />
+                                {/if}
+                            {/snippet}
+                        </Row>
+                    {/each}
+                </Card>
+                <Note>
+                    {#if repairs.length > 1}
+                        Both ends need me back. Telegram will ask you to confirm
+                        each one.
+                    {:else}
+                        Telegram will ask you to confirm, then put me back with
+                        the rights this forward needs.
+                    {/if}
+                </Note>
+            {:else if fixing === "chooser"}
+                <Card>
+                    <Row label="Waiting for Telegram…">
+                        {#snippet leading()}
+                            <Icon name="spinner" size={20} />
+                        {/snippet}
+                    </Row>
+                </Card>
+            {:else}
+                <Card>
+                    <Choices
+                        options={CHAT_KINDS}
+                        onpick={(kind) =>
+                            fix(
+                                kind as "channel" | "group",
+                                "chooser",
+                                (route.broken ?? []).length === 1
+                                    ? route.broken?.[0].end
+                                    : undefined,
+                            )}
+                    />
+                </Card>
+                <Note>
+                    Telegram will ask which chat, and add me there with the
+                    rights this forward needs.
+                </Note>
+            {/if}
         {:else}
             <Note>Fix it in Telegram, then switch it back on.</Note>
         {/if}
@@ -476,6 +566,17 @@ const addedText = $derived(
 {/if}
 
 <style>
+.whatis {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+/* Matches the id beside it, or the two sit on different baselines. */
+.whatis .dot {
+    font-size: var(--ui-id);
+}
+
 .lede {
     margin: -6px auto 0;
     max-width: min(18rem, 100% - 2.5rem);

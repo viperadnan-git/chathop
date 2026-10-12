@@ -16,7 +16,7 @@ export function isPresent(member) {
  *
  * `undefined` means unsettled: only a send proves anything about a private chat.
  */
-export function postVerdict(chatType, member) {
+export function postVerdict(chatType, member, chat) {
     if (chatType === "private") return undefined;
 
     switch (member?.status) {
@@ -28,8 +28,12 @@ export function postVerdict(chatType, member) {
                 ? { ok: false, status: "no_rights" }
                 : { ok: true };
         case "member":
-            return chatType === "channel"
-                ? { ok: false, status: "not_admin" }
+            if (chatType === "channel")
+                return { ok: false, status: "not_admin" };
+            // A group's own defaults decide for a plain member, when a full
+            // getChat brought them.
+            return chat?.permissions?.can_send_messages === false
+                ? { ok: false, status: "no_rights" }
                 : { ok: true };
         case "restricted":
             return member.can_send_messages

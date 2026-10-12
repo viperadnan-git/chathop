@@ -67,7 +67,7 @@ let {
         transform: none;
     }
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
     .ui-button:hover:not(:disabled) {
         filter: brightness(1.08);
     }

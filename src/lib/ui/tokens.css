@@ -61,6 +61,7 @@
     --ui-media: 56px; /* hero photo */
     --ui-avatar-lg: 64px; /* a chat shown on its own, not in a list */
     --ui-gap: 10px;
+    --ui-id: 13px; /* a chat id, and anything set beside one */
     --ui-section-gap: 24px;
 
     /*

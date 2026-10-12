@@ -51,7 +51,7 @@ let {
 .choice:active:not(:disabled) {
     background: var(--ui-press);
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
     .choice:hover:not(:disabled) {
         background: var(--ui-hover);
     }

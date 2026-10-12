@@ -61,17 +61,60 @@ export function init() {
 
 export const close = () => webApp?.close();
 
-export type PickResult = "picked" | "cancelled" | "unsupported";
+/** Both events fire on a return; whichever lands first wins. Returns the
+ * unsubscribe. */
+export function onReturn(run: () => void) {
+    const back = () => {
+        if (!document.hidden) run();
+    };
+    addEventListener("focus", back);
+    document.addEventListener("visibilitychange", back);
+    return () => {
+        removeEventListener("focus", back);
+        document.removeEventListener("visibilitychange", back);
+    };
+}
+
+/** `unknown`: the sheet closed but Telegram never said how — a dismissal, or a
+ * pick whose callback was late. The caller must re-read, not report either. */
+export type PickResult = "picked" | "cancelled" | "unsupported" | "unknown";
+
+// A picker is open: its own return is not the user coming back to the app, and
+// reloading then would race the caller's own poll.
+let picking = 0;
+export const isPicking = () => picking > 0;
+
+// Telegram does not always call back when the picker closes. Focus returning
+// ends the wait, after a moment in case the answer is still on its way.
+const SETTLE_MS = 700;
 
 export const requestChat = (requestId: string) =>
     new Promise<PickResult>((resolve) => {
         if (!webApp?.requestChat) return resolve("unsupported");
+
+        picking += 1;
+        let settled = false;
+        let timer: ReturnType<typeof setTimeout>;
+        let stop = () => {};
+        const settle = (result: PickResult) => {
+            if (settled) return;
+            settled = true;
+            picking -= 1;
+            clearTimeout(timer);
+            stop();
+            resolve(result);
+        };
+        stop = onReturn(() => {
+            clearTimeout(timer);
+            timer = setTimeout(() => settle("unknown"), SETTLE_MS);
+        });
+
         try {
             webApp.requestChat(requestId, (ok) =>
-                resolve(ok ? "picked" : "cancelled"),
+                settle(ok ? "picked" : "cancelled"),
             );
         } catch {
-            resolve("unsupported");
+            settle("unsupported");
         }
     });
 

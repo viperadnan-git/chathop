@@ -1,6 +1,7 @@
 import { db } from "sdk";
 import { and, eq, inArray, sql } from "sdk/db";
 import { chats, picker, routes, settings } from "../schema.js";
+import { ABSENT, brokenEnds } from "./health.js";
 import { newId } from "./id.js";
 import { chatTitle } from "./text.js";
 
@@ -147,6 +148,9 @@ const NAMES = {
     username: chats.username,
 };
 
+// What judging a route's ends needs on top of a label.
+const ENDS = { ...NAMES, type: chats.type, facts: chats.facts };
+
 const chatName = (chat, chatId) =>
     chat?.title || (chat?.username ? `@${chat.username}` : String(chatId));
 
@@ -269,7 +273,7 @@ export async function listRoutesWithNames(userId) {
         ...new Set(rows.flatMap((r) => [r.sourceChatId, r.destChatId])),
     ];
     const known = await db
-        .select(NAMES)
+        .select(ENDS)
         .from(chats)
         .where(inArray(chats.chatId, ids))
         .all();
@@ -280,7 +284,34 @@ export async function listRoutesWithNames(userId) {
         ...r,
         sourceName: name(r.sourceChatId),
         destName: name(r.destChatId),
+        broken: brokenEnds(
+            byId.get(r.sourceChatId),
+            byId.get(r.destChatId),
+        ).map((end) => {
+            const id = end === "source" ? r.sourceChatId : r.destChatId;
+            return {
+                end,
+                chatId: id,
+                name: name(id),
+                type: byId.get(id)?.type ?? null,
+            };
+        }),
     }));
+}
+
+/** The two chats a route runs between, as the facts recorded for them. */
+export async function endsOf(route) {
+    const rows = await db
+        .select(ENDS)
+        .from(chats)
+        .where(inArray(chats.chatId, [route.sourceChatId, route.destChatId]))
+        .all();
+    const byId = new Map(rows.map((c) => [c.chatId, c]));
+    return {
+        source: byId.get(route.sourceChatId),
+        dest: byId.get(route.destChatId),
+        name: (id) => chatName(byId.get(id), id),
+    };
 }
 
 export async function getUserRoute(userId, id) {
@@ -367,12 +398,16 @@ export async function reviveRoutesForChat(
     const result = await db.run(
         `UPDATE routes SET status = 'active', updated_at = unixepoch()
      WHERE status IN (${list}) AND ${SCOPES[scope]}
-       -- Being back in the source says nothing about the other end. The last
-       -- verdict recorded for it does, and an unknown one reads as fine.
+       -- One end being back says nothing about the other. The last verdict
+       -- recorded for each does, and an unknown one reads as fine.
        AND coalesce(
              json_extract((SELECT facts FROM chats WHERE chat_id = routes.dest_chat_id),
                           '$.canPost'),
-             1) = 1`,
+             1) = 1
+       AND coalesce(
+             json_extract((SELECT facts FROM chats WHERE chat_id = routes.source_chat_id),
+                          '$.block'),
+             '') NOT IN (${ABSENT.map((s) => `'${s}'`).join(", ")})`,
         { ":chat": chatId },
     );
     return result?.rowsAffected ?? 0;
@@ -427,6 +462,8 @@ export async function migrateChat(fromId, toId) {
         "UPDATE OR REPLACE routes SET source_chat_id = :to WHERE source_chat_id = :from",
         "UPDATE OR REPLACE routes SET dest_chat_id = :to WHERE dest_chat_id = :from",
         "UPDATE OR REPLACE chats SET chat_id = :to WHERE chat_id = :from",
+        "UPDATE picker SET source_chat_id = :to WHERE source_chat_id = :from",
+        "UPDATE picker SET dest_chat_id = :to WHERE dest_chat_id = :from",
     ]) {
         await db.run(stmt, { ":to": toId, ":from": fromId });
     }
