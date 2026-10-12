@@ -135,10 +135,12 @@ const tappable = $derived(!!onclick && !disabled);
     font-size: var(--ui-body);
     font-variant-numeric: tabular-nums;
 }
-.accent .label {
+.accent .label,
+.accent .leading {
     color: var(--ui-accent);
 }
-.danger .label {
+.danger .label,
+.danger .leading {
     color: var(--ui-danger);
 }
 .chevron {

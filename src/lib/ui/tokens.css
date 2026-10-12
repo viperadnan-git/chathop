@@ -59,6 +59,7 @@
        a 13px detail come to about 40px, so the two squares match. */
     --ui-avatar: 40px;
     --ui-media: 56px; /* hero photo */
+    --ui-avatar-lg: 64px; /* a chat shown on its own, not in a list */
     --ui-gap: 10px;
     --ui-section-gap: 24px;
 

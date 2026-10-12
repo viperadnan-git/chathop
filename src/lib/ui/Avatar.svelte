@@ -82,7 +82,7 @@ const colors = $derived(PALETTE[bare(chatId) % 7]);
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: var(--ui-note);
+    font-size: calc(var(--ui-leading) * 0.38);
     font-weight: var(--ui-weight-button);
 }
 img {

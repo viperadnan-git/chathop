@@ -21,7 +21,7 @@ const ARROWS = [0, 1, 2];
 </script>
 
 <div class="ends {tone}" aria-hidden="true">
-    <Avatar chatId={sourceChatId} name={sourceName ?? ""} size="64px" />
+    <Avatar chatId={sourceChatId} name={sourceName ?? ""} size="var(--ui-avatar-lg)" />
 
     <span class="path">
         {#if tone === "bad"}
@@ -37,7 +37,7 @@ const ARROWS = [0, 1, 2];
         {/if}
     </span>
 
-    <Avatar chatId={destChatId} name={destName} size="64px" />
+    <Avatar chatId={destChatId} name={destName} size="var(--ui-avatar-lg)" />
 </div>
 
 <style>
