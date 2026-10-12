@@ -11,12 +11,19 @@ import Sheet from "../ui/Sheet.svelte";
 import Textarea from "../ui/Textarea.svelte";
 import ReplaceList from "./ReplaceList.svelte";
 import RuleList from "./RuleList.svelte";
+import RuleTester from "./RuleTester.svelte";
 
 let {
     pane,
     config = $bindable(),
+    from,
     onclose,
-}: { pane: Pane; config: RouteConfig; onclose: () => void } = $props();
+}: {
+    pane: Pane;
+    config: RouteConfig;
+    from: string;
+    onclose: () => void;
+} = $props();
 
 const META: Record<Pane, { title: string; icon: string; lede: string }> = {
     allow: {
@@ -39,6 +46,11 @@ const META: Record<Pane, { title: string; icon: string; lede: string }> = {
         icon: "keyword",
         lede: "Text of your own around the caption. Each part goes on its own line.",
     },
+    test: {
+        title: "Try your rules",
+        icon: "tryout",
+        lede: "Run a message past the rules on this screen, including the edits you have not saved yet.",
+    },
 };
 
 const meta = $derived(META[pane]);
@@ -54,7 +66,9 @@ const meta = $derived(META[pane]);
         {#snippet lede()}{meta.lede}{/snippet}
     </Hero>
 
-    {#if pane === "text"}
+    {#if pane === "test"}
+        <RuleTester {config} {from} />
+    {:else if pane === "text"}
         <Heading title="Around the caption" />
         <Card>
             <Textarea

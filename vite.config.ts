@@ -19,6 +19,15 @@ export default defineConfig({
             $about: fileURLToPath(
                 new URL("./tgcloud/lib/about.js", import.meta.url),
             ),
+            $filters: fileURLToPath(
+                new URL("./tgcloud/lib/forwarding/filters.js", import.meta.url),
+            ),
+            $transforms: fileURLToPath(
+                new URL(
+                    "./tgcloud/lib/forwarding/transforms.js",
+                    import.meta.url,
+                ),
+            ),
         },
     },
     build: { outDir: "dist", emptyOutDir: true },

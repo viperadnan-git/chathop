@@ -74,11 +74,18 @@ function matches(rule, msg, folded) {
     }
 }
 
-export function passes(config, msg) {
+export function explain(config, msg) {
     const { whitelist, blacklist } = config.filters;
     const folded = {};
 
-    if (blacklist.some((rule) => matches(rule, msg, folded))) return false;
-    if (whitelist.length === 0) return true;
-    return whitelist.some((rule) => matches(rule, msg, folded));
+    const denied = blacklist.find((rule) => matches(rule, msg, folded));
+    if (denied) return { pass: false, list: "block", rule: denied };
+    if (whitelist.length === 0) return { pass: true };
+
+    const allowed = whitelist.find((rule) => matches(rule, msg, folded));
+    return allowed
+        ? { pass: true, list: "allow", rule: allowed }
+        : { pass: false, list: "allow" };
 }
+
+export const passes = (config, msg) => explain(config, msg).pass;

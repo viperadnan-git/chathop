@@ -427,6 +427,16 @@ const addedText = $derived(
     {/if}
 
 
+    <Card>
+        <Row
+            label="Try your rules"
+            description="Preview one before saving"
+            chevron
+            onclick={() => onpane("test")}
+        >
+            {#snippet leading()}<Icon name="tryout" size={22} />{/snippet}
+        </Row>
+    </Card>
 
     <Heading title="Actions" />
     <Card>
@@ -457,7 +467,12 @@ const addedText = $derived(
 </Sheet>
 
 {#if pane}
-    <RulePane {pane} bind:config onclose={() => onpane(null)} />
+    <RulePane
+        {pane}
+        bind:config
+        from={String(route.sourceName || route.sourceChatId)}
+        onclose={() => onpane(null)}
+    />
 {/if}
 
 <style>

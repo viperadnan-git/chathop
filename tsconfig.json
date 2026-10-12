@@ -3,5 +3,12 @@
     "references": [
         { "path": "./tsconfig.app.json" },
         { "path": "./tsconfig.node.json" }
-    ]
+    ],
+    // Only so `bun test/check.js` can resolve what vite.config.ts aliases.
+    "compilerOptions": {
+        "paths": {
+            "$filters": ["./tgcloud/lib/forwarding/filters.js"],
+            "$transforms": ["./tgcloud/lib/forwarding/transforms.js"]
+        }
+    }
 }

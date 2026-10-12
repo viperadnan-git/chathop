@@ -1,4 +1,4 @@
-export type Pane = "allow" | "block" | "replace" | "text";
+export type Pane = "allow" | "block" | "replace" | "text" | "test";
 
 export type Loc =
     | { name: "settings" | "help" | "add" | "pick" | "bot" }
@@ -6,7 +6,7 @@ export type Loc =
 
 const TOP = ["settings", "help", "add", "pick", "bot"] as const;
 
-const PANES: readonly string[] = ["allow", "block", "replace", "text"];
+const PANES: readonly string[] = ["allow", "block", "replace", "text", "test"];
 
 export function parse(path: string = location.pathname): Loc {
     const parts = path

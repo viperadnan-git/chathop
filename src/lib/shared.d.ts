@@ -31,6 +31,26 @@ declare module "$about" {
     export const ABOUT: string;
 }
 
+declare module "$filters" {
+    import type { MediaKind, RouteConfig, Rule } from "./config-types";
+
+    export type Verdict = {
+        pass: boolean;
+        list?: "allow" | "block";
+        rule?: Rule;
+    };
+    export function explain(config: RouteConfig, msg: unknown): Verdict;
+    export function passes(config: RouteConfig, msg: unknown): boolean;
+    export function mediaKind(msg: unknown): MediaKind;
+}
+
+declare module "$transforms" {
+    export type Entity = { type: string; offset: number; length: number };
+    export type Content = { text: string; entities: Entity[] };
+    export function applyCaption(caption: unknown, input: Content): Content;
+    export function clamp(input: Content, limit: number): Content;
+}
+
 declare module "$status" {
     export const ROUTE_STATUS: Record<string, string>;
     export function statusLabel(status: string): string;

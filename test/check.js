@@ -11,7 +11,11 @@ import {
     MAX_RULES,
     parseConfig,
 } from "../tgcloud/lib/config.js";
-import { mediaKind, passes } from "../tgcloud/lib/forwarding/filters.js";
+import {
+    explain,
+    mediaKind,
+    passes,
+} from "../tgcloud/lib/forwarding/filters.js";
 import { checkPattern } from "../tgcloud/lib/forwarding/regex.js";
 import { applyCaption, clamp } from "../tgcloud/lib/forwarding/transforms.js";
 import { classify } from "../tgcloud/lib/health.js";
@@ -186,6 +190,40 @@ const caption = (over = {}) => ({ ...defaultConfig().caption, ...over });
         false,
         "usernames are normalised on both sides",
     );
+}
+
+{
+    const msg = { text: "Buy CHEAP pills", chat: { id: 1 }, message_id: 1 };
+    const block = parseConfig({
+        filters: { blacklist: [{ type: "keyword", value: "cheap" }] },
+    });
+    const denied = explain(block, msg);
+    assert.equal(denied.pass, false);
+    assert.equal(denied.list, "block");
+    assert.equal(denied.rule.value, "cheap");
+    assert.equal(passes(block, msg), denied.pass);
+
+    const allow = parseConfig({
+        filters: { whitelist: [{ type: "keyword", value: "pills" }] },
+    });
+    const ok = explain(allow, msg);
+    assert.deepEqual(
+        [ok.pass, ok.list, ok.rule.value],
+        [true, "allow", "pills"],
+    );
+
+    const missed = explain(
+        parseConfig({
+            filters: { whitelist: [{ type: "keyword", value: "socks" }] },
+        }),
+        msg,
+    );
+    assert.deepEqual(
+        [missed.pass, missed.list, missed.rule],
+        [false, "allow", undefined],
+    );
+
+    assert.deepEqual(explain(defaultConfig(), msg), { pass: true });
 }
 
 // --- config ----------------------------------------------------------------
@@ -480,3 +518,139 @@ for (const len of [0, 1, 2, 3, 4, 5, 17, 64, 199]) {
 }
 
 console.log("ok");
+
+// --- the editor's preview --------------------------------------------------
+
+{
+    const { preview } = await import("../src/lib/preview.ts");
+    const cfg = (over) => parseConfig(over);
+    const draft = (over = {}) => ({ body: "hello", kind: "text", ...over });
+
+    const plain = preview(cfg({}), draft());
+    assert.deepEqual(
+        [plain.verdict.pass, plain.text, plain.dropped],
+        [true, "hello", false],
+    );
+
+    const blocked = preview(
+        cfg({ filters: { blacklist: [{ type: "keyword", value: "spam" }] } }),
+        draft({ body: "buy SPAM now" }),
+    );
+    assert.equal(blocked.verdict.pass, false);
+    assert.equal(blocked.verdict.list, "block");
+    assert.equal(blocked.verdict.rule.value, "spam");
+
+    const byName = cfg({
+        filters: {
+            whitelist: [{ type: "keyword", value: ".mkv", target: "filename" }],
+        },
+    });
+    assert.equal(
+        preview(byName, draft({ kind: "document", fileName: "show.mkv" }))
+            .verdict.pass,
+        true,
+    );
+    assert.equal(
+        preview(byName, draft({ kind: "document", fileName: "show.avi" }))
+            .verdict.pass,
+        false,
+    );
+    assert.equal(preview(byName, draft({ kind: "photo" })).verdict.pass, false);
+
+    const onlyPhotos = cfg({
+        filters: { whitelist: [{ type: "media", kinds: ["photo"] }] },
+    });
+    assert.equal(
+        preview(onlyPhotos, draft({ kind: "photo" })).verdict.pass,
+        true,
+    );
+    assert.equal(preview(onlyPhotos, draft()).verdict.pass, false);
+
+    const bySender = cfg({
+        filters: { blacklist: [{ type: "sender", usernames: ["spammer"] }] },
+    });
+    assert.equal(
+        preview(bySender, draft({ sender: "@SpamMer" })).verdict.pass,
+        false,
+    );
+    assert.equal(
+        preview(bySender, draft({ sender: "@someone" })).verdict.pass,
+        true,
+    );
+    const byId = cfg({
+        filters: { blacklist: [{ type: "sender", ids: [42] }] },
+    });
+    assert.equal(preview(byId, draft({ sender: "42" })).verdict.pass, false);
+    assert.equal(preview(byId, draft({ sender: "43" })).verdict.pass, true);
+
+    assert.equal(
+        preview(cfg({ caption: { prepend: "via", append: "end" } }), draft())
+            .text,
+        "via\nhello\nend",
+    );
+    assert.equal(
+        preview(
+            cfg({
+                caption: {
+                    replace: [{ pattern: "hello", replacement: "hi" }],
+                },
+            }),
+            draft(),
+        ).text,
+        "hi",
+    );
+
+    assert.equal(
+        preview(
+            cfg({ caption: { removeLinks: true } }),
+            draft({
+                body: "see https://x.test/a now",
+            }),
+        ).text,
+        "see  now",
+    );
+    assert.equal(
+        preview(
+            cfg({ caption: { removeMentions: true } }),
+            draft({
+                body: "ping @someone please",
+            }),
+        ).text,
+        "ping  please",
+    );
+
+    const stripped = preview(cfg({ caption: { strip: true } }), draft());
+    assert.equal(stripped.text, "");
+    assert.equal(stripped.dropped, true);
+    assert.equal(
+        preview(cfg({ caption: { strip: true } }), draft({ kind: "photo" }))
+            .dropped,
+        false,
+    );
+
+    const fwd = preview(
+        cfg({ mode: "forward", caption: { prepend: "via", strip: true } }),
+        draft(),
+    );
+    assert.deepEqual(
+        [fwd.forwarded, fwd.text, fwd.dropped],
+        [true, "hello", false],
+    );
+
+    const long = "x".repeat(5000);
+    assert.equal(preview(cfg({}), draft({ body: long })).text.length, 4096);
+    assert.equal(
+        preview(cfg({}), draft({ body: long, kind: "photo" })).text.length,
+        1024,
+    );
+
+    const both = cfg({
+        filters: {
+            whitelist: [{ type: "keyword", value: "hello" }],
+            blacklist: [{ type: "keyword", value: "hello" }],
+        },
+    });
+    assert.equal(preview(both, draft()).verdict.list, "block");
+}
+
+console.log("preview ok");
